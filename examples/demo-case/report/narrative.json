@@ -1,0 +1,91 @@
+{
+  "_help": "Filled by the analyst / Claude (skill ir-report). Every claim carries refs: w<N>, item<NN>, G<N>, R<N>. See templates/report-narrative.md.",
+  "title": "Leaked ci-deployer key used to read the customer exports bucket",
+  "summary": "The access key of IAM user ci-deployer was pushed to a public repository on 2026-09-12 20:41 UTC. An external address used it 26 minutes later, created a backdoor user and read 1 090 objects (2.31 GB) of customer exports for July and August 2026. The client disabled the key on 2026-09-13 09:41 UTC; the actor made no successful call after that. The database password from the same file is not yet proven rotated.",
+  "status_label": "Contained",
+  "severity": "SEV-2",
+  "kpis": [
+    {"value": "26", "unit": "min", "label": "from the public push to the first use of the key", "level": "critical", "refs": ["w9", "w10"]},
+    {"value": "10.7", "unit": "h", "label": "until the first GuardDuty finding", "level": "serious", "refs": ["w13"]},
+    {"value": "12 h 34", "unit": "min", "label": "the actor had access (dwell time)", "level": "serious", "refs": ["w10", "w11"]},
+    {"value": "2.31", "unit": "GB", "label": "read from exampleco-customer-exports", "level": "critical", "refs": ["w7"]},
+    {"value": "1 214", "label": "API calls from 203.0.113[.]45", "level": "neutral", "refs": ["w4"], "audience": ["technical"]},
+    {"value": "0", "label": "successful actor calls after the key was disabled", "level": "good", "refs": ["w12", "w14"], "audience": ["executive"]}
+  ],
+  "phases": {
+    "milestones": [
+      {"time": "2026-09-12T20:41:37Z", "event": "dev-jlee pushes .env to the public repository", "refs": ["w9"]},
+      {"time": "2026-09-12T21:07:44Z", "event": "First call from 203.0.113[.]45", "refs": ["w10"]},
+      {"time": "2026-09-13T07:52:00Z", "event": "First GuardDuty finding", "refs": ["w13"]},
+      {"time": "2026-09-13T09:41:12Z", "event": "sec-admin sets the key to Inactive", "refs": ["w11"]},
+      {"time": "2026-09-13T09:52:20Z", "event": "Last actor call, InvalidClientTokenId", "refs": ["w12"]}
+    ],
+    "segments": [
+      {"label": "Key public, not used yet", "level": "warning"},
+      {"label": "Actor active, no alert", "level": "critical"},
+      {"label": "Alert raised, key still active", "level": "serious"},
+      {"label": "Key disabled, actor gets errors", "level": "good"}
+    ]
+  },
+  "attack_chain": [
+    {"tactic": "Initial Access", "technique": "T1552.001", "name": "Credentials In Files", "what": "Key in a .env file of a public repository", "time": "2026-09-12 20:41:37", "refs": ["w9"], "key": true},
+    {"tactic": "Initial Access", "technique": "T1078.004", "name": "Valid Accounts: Cloud Accounts", "what": "Calls signed with the ci-deployer key", "time": "21:07:44", "refs": ["w10"], "key": true},
+    {"tactic": "Discovery", "technique": "T1087.004", "name": "Account Discovery: Cloud Account", "what": "GetCallerIdentity, 6 calls", "time": "21:07", "refs": ["w4"]},
+    {"tactic": "Discovery", "technique": "T1619", "name": "Cloud Storage Object Discovery", "what": "ListBuckets 9, ListObjectsV2 61", "time": "21:08-21:18", "refs": ["w4"]},
+    {"tactic": "Persistence", "technique": "T1136.003", "name": "Create Account: Cloud Account", "what": "CreateUser svc-backup-sync", "time": "21:19:10", "refs": ["w5"], "key": true},
+    {"tactic": "Persistence", "technique": "T1098.001", "name": "Additional Cloud Credentials", "what": "CreateAccessKey for the new user", "time": "21:19:31", "refs": ["w5"]},
+    {"tactic": "Privilege Escalation", "technique": "T1098.003", "name": "Additional Cloud Roles", "what": "AttachUserPolicy AdministratorAccess, AccessDenied", "time": "21:20:02", "refs": ["w5"]},
+    {"tactic": "Collection", "technique": "T1530", "name": "Data from Cloud Storage", "what": "1 090 GetObject, 2.31 GB", "time": "21:24-09:38", "refs": ["w7"], "key": true}
+  ],
+  "charts": [
+    {"type": "columns", "title": "Actor API calls per hour (UTC)", "labels": ["21", "22", "23", "00", "01", "02", "03", "04", "05", "06", "07", "08", "09"],
+     "series": [{"name": "GetObject (data read)", "values": [64, 112, 98, 41, 12, 0, 0, 38, 96, 104, 131, 187, 207]},
+                {"name": "Discovery and IAM", "values": [96, 6, 4, 2, 0, 0, 0, 3, 4, 3, 2, 2, 2]}],
+     "markers": [{"at": 10.87, "label": "GuardDuty 07:52", "tip": "First GuardDuty finding, 07:52 UTC (w13)"},
+                 {"at": 12.68, "label": "key disabled", "tip": "UpdateAccessKey Inactive, 09:41:12 UTC (w11)"}],
+     "note": "2026-09-12 21:00 to 2026-09-13 09:59 UTC. No calls from 02:00 to 03:59.", "refs": ["w15"]},
+    {"type": "hbar", "title": "Actor API calls by action", "rows": [
+      {"label": "GetObject", "value": 1090}, {"label": "ListObjectsV2", "value": 61}, {"label": "other", "value": 45, "level": "neutral"},
+      {"label": "ListBuckets", "value": 9}, {"label": "GetCallerIdentity", "value": 6}, {"label": "CreateUser", "value": 1, "level": "serious"},
+      {"label": "CreateAccessKey", "value": 1, "level": "serious"}, {"label": "AttachUserPolicy (denied)", "value": 1, "level": "critical"}],
+     "note": "Linear scale.", "refs": ["w4"]},
+    {"type": "split", "title": "Objects read by prefix", "parts": [
+      {"label": "2026/07/", "value": 512, "tip": "2026/07/: 512 objects"}, {"label": "2026/08/", "value": 578, "tip": "2026/08/: 578 objects"}],
+     "note": "Every one of the 1 090 keys was read once. Other buckets cannot be checked (G2).", "refs": ["w7", "w8"]},
+    {"type": "columns", "title": "Size of the objects read", "labels": ["< 0.5 MB", "0.5-1 MB", "1-2 MB", "2-4 MB", "> 4 MB"],
+     "series": [{"name": "objects", "values": [190, 241, 352, 268, 39]}], "height": 200, "refs": ["w16"]}
+  ],
+  "evidence": [
+    {"claim": "The actor made 1 214 calls from 203.0.113[.]45", "status": "Confirmed", "refs": ["w4"]},
+    {"claim": "26 minutes passed from the push to the first use of the key", "status": "Confirmed", "refs": ["w9", "w10"]},
+    {"claim": "The svc-backup-sync key was never used", "status": "Partially", "refs": ["w6"]},
+    {"claim": "2.31 GB was read from 1 090 distinct objects", "status": "Confirmed", "refs": ["w7", "w8"]},
+    {"claim": "The actor is locked out", "status": "Confirmed", "refs": ["w11", "w12", "w14"]}
+  ],
+  "key_questions": [
+    {"question": "How did the attacker get in?", "status": "Confirmed", "confidence": 5, "answer": "A developer pushed a file with a cloud access key to a public code repository. An external address started using the key 26 minutes later.", "refs": ["w9", "w10"]},
+    {"question": "Was customer data taken?", "status": "Confirmed", "confidence": 5, "answer": "Yes. 1 090 customer export files from July and August 2026 were downloaded, 2.31 GB in total. Whether other storage was read cannot be determined, because logging was off there.", "refs": ["w7", "w8"]},
+    {"question": "Is the attacker still inside?", "status": "Confirmed", "confidence": 4, "answer": "No. The key and the backdoor user were removed on 2026-09-13. Every call after that failed, and no new activity appeared in the following 22 hours.", "refs": ["w11", "w12", "w14"]},
+    {"question": "Are other secrets at risk?", "status": "Partially", "confidence": 2, "answer": "The same file held a database password. We see no proof that it was changed.", "refs": ["item01"]}
+  ],
+  "story": [
+    {"time": "12 Sep 20:41", "title": "Key exposed", "text": "A cloud access key lands in a public code repository"},
+    {"time": "12 Sep 21:07", "title": "Attacker in", "text": "An external address starts using the key"},
+    {"time": "12 Sep 21:19", "title": "Backdoor", "text": "The attacker creates an extra user to keep access"},
+    {"time": "12 Sep 21:24", "title": "Data read", "text": "Customer export files are downloaded through the night"},
+    {"time": "13 Sep 09:41", "title": "Stopped", "text": "The client disables the key and deletes the backdoor user"}
+  ],
+  "risks": [
+    {"id": "R1", "text": "Database password from the same file still valid", "likelihood": 4, "impact": 5, "refs": ["item01"]},
+    {"id": "R2", "text": "Activity in other cloud regions not visible", "likelihood": 2, "impact": 4, "refs": ["G1"]},
+    {"id": "R3", "text": "Other buckets read without a trace", "likelihood": 2, "impact": 4, "refs": ["G2"]},
+    {"id": "R4", "text": "Another key leaks the same way", "likelihood": 3, "impact": 4, "refs": ["item01"]}
+  ],
+  "decisions": [
+    {"decision": "Decide whether to notify affected customers and the regulator", "why": "Customer exports for July and August 2026 were downloaded. GDPR gives 72 hours from awareness (2026-09-13 09:15 UTC)", "deadline_utc": "2026-09-16T09:15Z", "owner": "DPO, legal", "level": "critical"},
+    {"decision": "Rotate the database password from the leaked file", "why": "Closes risk R1", "deadline_utc": "2026-09-14T18:00Z", "owner": "Platform team", "level": "critical"},
+    {"decision": "Enable secret scanning push protection for the organisation", "why": "Stops the same leak path (R4)", "deadline_utc": "2026-09-21T00:00Z", "owner": "Head of engineering", "level": "warning"}
+  ],
+  "impact": {"assets": [], "services": [], "recovery": {}},
+  "methodology_notes": ["CloudTrail in the SIEM covers eu-central-1 only (G1).", "S3 data events exist for one bucket only (G2)."]
+}

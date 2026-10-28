@@ -1,0 +1,11 @@
+{
+  "name": "ir-casekit",
+  "version": "0.6.1",
+  "description": "Evidence-first incident response for Claude Code: intake, plan, investigation, coverage matrix, data requests, client comms and HTML / PDF reports.",
+  "author": {
+    "name": "stinky-kombucha-labs"
+  },
+  "homepage": "https://github.com/stinky-kombucha-labs/ir-casekit",
+  "license": "MIT",
+  "keywords": ["incident-response", "dfir", "soc", "siem", "edr"]
+}

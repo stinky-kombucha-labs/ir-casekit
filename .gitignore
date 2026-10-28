@@ -1,0 +1,15 @@
+# Case data never goes into git
+cases/*
+!cases/.gitkeep
+inbox/*
+!inbox/README.md
+
+# Secrets
+.env
+*.env
+.mcp.json
+
+# Python
+__pycache__/
+*.pyc
+

@@ -1,0 +1,13 @@
+{
+  "name": "ir-casekit",
+  "owner": {
+    "name": "stinky-kombucha-labs"
+  },
+  "plugins": [
+    {
+      "name": "ir-casekit",
+      "source": "./plugins/ir-casekit",
+      "description": "Incident response workflow: intake, plan, investigate, tracker, containment checks, data gaps, client comms, reports."
+    }
+  ]
+}

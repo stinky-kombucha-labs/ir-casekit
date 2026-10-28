@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate JSON manifests
+        run: |
+          python -m json.tool .claude-plugin/marketplace.json > /dev/null
+          python -m json.tool plugins/ir-casekit/.claude-plugin/plugin.json > /dev/null
+          python -m json.tool .claude/settings.json > /dev/null
+      - name: Demo case is ready
+        run: python3 -I plugins/ir-casekit/scripts/check-case.py examples/demo-case
+      - name: Profiler runs on the demo export
+        run: python3 -I plugins/ir-casekit/scripts/log-profile.py examples/demo-case/sources/client_export_2026-09-14/github_audit.jsonl
+      - name: Reports render from the demo case
+        run: |
+          cp -r examples/demo-case /tmp/demo-case
+          python3 -I plugins/ir-casekit/scripts/report.py render /tmp/demo-case --audience technical,executive,quality --format html --as-of 2026-09-14T11:30Z
+          test -s /tmp/demo-case/report/inc-0042-technical-20260914.html
+          test -s /tmp/demo-case/report/inc-0042-executive-20260914.html
+          test -s /tmp/demo-case/report/inc-0042-quality-20260914.html
+          python3 -I plugins/ir-casekit/scripts/report.py portfolio examples --format html --out /tmp/portfolio
+          ls /tmp/portfolio/*.html
+      - name: New case from templates
+        run: |
+          bash plugins/ir-casekit/scripts/new-case.sh acme test-001 /tmp/cases
+          test -f /tmp/cases/acme-test-001/coverage.md

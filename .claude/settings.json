@@ -1,0 +1,18 @@
+{
+  "model": "sonnet",
+  "permissions": {
+    "allow": [
+      "Bash(python3 -I plugins/ir-casekit/scripts/log-profile.py:*)",
+      "Bash(python3 -I plugins/ir-casekit/scripts/check-case.py:*)",
+      "Bash(python3 -I plugins/ir-casekit/scripts/report.py:*)",
+      "Bash(py -3 -I plugins/ir-casekit/scripts/log-profile.py:*)",
+      "Bash(py -3 -I plugins/ir-casekit/scripts/check-case.py:*)",
+      "Bash(py -3 -I plugins/ir-casekit/scripts/report.py:*)",
+      "Bash(python -I plugins/ir-casekit/scripts/log-profile.py:*)",
+      "Bash(python -I plugins/ir-casekit/scripts/check-case.py:*)",
+      "Bash(python -I plugins/ir-casekit/scripts/report.py:*)",
+      "Bash(bash plugins/ir-casekit/scripts/new-case.sh:*)",
+      "Bash(bash plugins/ir-casekit/scripts/link-skills.sh)"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "_comment": "Copy into the case folder as .mcp.json and keep values in the analyst's own environment (case .env, not committed). One SIEM block per client; delete the ones the client does not use.",
+  "mcpServers": {
+    "elastic-client": {
+      "type": "http",
+      "url": "${ELASTIC_MCP_URL}",
+      "headers": {
+        "Authorization": "ApiKey ${ELASTIC_API_KEY}"
+      }
+    },
+    "falcon-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--env-file", "${CASE_DIR}/.env", "falcon-mcp", "--read-only"]
+    },
+    "splunk-client": {
+      "type": "http",
+      "url": "${SPLUNK_MCP_URL}",
+      "headersHelper": "${HOME}/.claude/splunk-headers.sh"
+    }
+  }
+}

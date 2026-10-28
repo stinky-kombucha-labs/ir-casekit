@@ -1,0 +1,1301 @@
+{
+  "schema": 1,
+  "generated_utc": "2026-09-14T11:30Z",
+  "case_dir": "demo-case",
+  "meta": {
+    "client": "Example Corp",
+    "incident_id": "inc-0042",
+    "opened_utc": "2026-09-13T08:10Z",
+    "client_timezone": "Europe/Berlin, UTC+2",
+    "channel": "#inc-0042 (fictional)",
+    "tickets": "[]",
+    "tracker_url": "",
+    "work_mode": "sequential",
+    "severity": "SEV-2",
+    "incident_type": "Cloud credentials",
+    "initial_access": "Key in public repository",
+    "status": "contained",
+    "first_actor_activity_utc": "2026-09-12T21:07:44Z",
+    "detected_utc": "2026-09-13T07:52Z",
+    "contained_utc": "2026-09-13T09:41:12Z",
+    "closed_utc": "",
+    "team": "",
+    "team.lead": "Demo Analyst",
+    "team.analysts": "[]"
+  },
+  "trigger": "GuardDuty finding UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS style alert on 2026-09-13 07:52 UTC for the IAM user ci-deployer in account 111122223333. The client's platform team reported that the user's access key may have been committed to a public repository. Raw message: sources/slack_inc-0042_2026-09-13.md.",
+  "sources": [
+    {
+      "name": "siem-demo",
+      "type": "siem",
+      "covers": "CloudTrail management events eu-central-1, S3 data events for `exampleco-customer-exports`, GuardDuty",
+      "access": "OK (w1)"
+    },
+    {
+      "name": "github audit export",
+      "type": "file",
+      "covers": "Organization audit log 2026-09-10 to 2026-09-14",
+      "access": "received 2026-09-14 (w9)"
+    }
+  ],
+  "items": [
+    {
+      "id": "00",
+      "title": "Data inventory: Example Corp inc-0042",
+      "status": "",
+      "file": "analysis/item00_data_inventory.md",
+      "facts": []
+    },
+    {
+      "id": "01",
+      "title": "Review exposure of the ci-deployer access key",
+      "status": "Confirmed",
+      "file": "analysis/item01_key_exposure.md",
+      "facts": [
+        "2026-09-12 20:41:37 dev-jlee pushed to the public repository example-corp/deploy-scripts (w9).",
+        "2026-09-12 21:07:44 first call with key AKIA...EXMPL from 203.0.113.45 (GetCallerIdentity), 26 minutes after the push (w10)."
+      ]
+    },
+    {
+      "id": "02",
+      "title": "Review the actor's API activity",
+      "status": "Confirmed",
+      "file": "analysis/item02_actor_activity.md",
+      "facts": [
+        "1 214 calls from 203.0.113.45 between 2026-09-12 21:07:44 and 2026-09-13 09:38:02 (w4).",
+        "GetObject 1 090, ListObjectsV2 61, ListBuckets 9, GetCallerIdentity 6, CreateUser 1, CreateAccessKey 1, AttachUserPolicy 1 (AccessDenied), other 45 (w4).",
+        "37 calls from 198.51.100.7 belong to the client's CI runner (w3).",
+        "GuardDuty raised the first finding at 2026-09-13 07:52, about 10.7 h after first use (w13)."
+      ]
+    },
+    {
+      "id": "03",
+      "title": "Review persistence",
+      "status": "Partially",
+      "file": "analysis/item03_persistence.md",
+      "facts": [
+        "2026-09-12 21:19:10 CreateUser svc-backup-sync (w5).",
+        "2026-09-12 21:19:31 CreateAccessKey for svc-backup-sync (w5).",
+        "2026-09-12 21:20:02 AttachUserPolicy AdministratorAccess failed with AccessDenied (w5).",
+        "0 calls by svc-backup-sync in eu-central-1 on a filled user_name field (w6)."
+      ]
+    },
+    {
+      "id": "04",
+      "title": "Review data access in S3",
+      "status": "Confirmed",
+      "file": "analysis/item04_s3_data_access.md",
+      "facts": [
+        "1 090 GetObject calls on 1 090 distinct objects in exampleco-customer-exports/2026/, 2.31 GB sent out (w7).",
+        "Prefix 2026/07/ 512 objects, 2026/08/ 578 objects (w8).",
+        "ListBuckets ran 9 times (w4); reads in buckets other than exampleco-customer-exports are not logged (G2)."
+      ]
+    },
+    {
+      "id": "05",
+      "title": "Review containment",
+      "status": "Confirmed",
+      "file": "analysis/item05_containment.md",
+      "facts": [
+        "2026-09-13 09:41:12 sec-admin set AKIA...EXMPL to Inactive (w11).",
+        "2026-09-13 09:47:55 svc-backup-sync key and user deleted (w11).",
+        "3 actor calls after deactivation, all InvalidClientTokenId, the last at 09:52:20 (w12).",
+        "0 actor events up to 2026-09-14 07:58 (w14)."
+      ]
+    }
+  ],
+  "timeline": [
+    {
+      "time": "2026-09-12 20:41:37",
+      "who": "dev-jlee, example-corp/deploy-scripts",
+      "event": "Push of a .env file with the ci-deployer key to the public repository. (S2 w9)",
+      "refs": [
+        "w9"
+      ],
+      "key": true
+    },
+    {
+      "time": "2026-09-12 21:07:44",
+      "who": "ci-deployer, 203.0.113.45",
+      "event": "First external call, GetCallerIdentity. (S1 w10)",
+      "refs": [
+        "w10"
+      ],
+      "key": true
+    },
+    {
+      "time": "2026-09-12 21:08–21:18",
+      "who": "ci-deployer, 203.0.113.45",
+      "event": "9 ListBuckets, 61 ListObjectsV2. (S1 w4)",
+      "refs": [
+        "w4"
+      ],
+      "key": false
+    },
+    {
+      "time": "2026-09-12 21:19:10",
+      "who": "ci-deployer, 203.0.113.45",
+      "event": "CreateUser svc-backup-sync, then CreateAccessKey at 21:19:31. (S1 w5)",
+      "refs": [
+        "w5"
+      ],
+      "key": true
+    },
+    {
+      "time": "2026-09-12 21:20:02",
+      "who": "ci-deployer, 203.0.113.45",
+      "event": "AttachUserPolicy AdministratorAccess denied. (S1 w5)",
+      "refs": [
+        "w5"
+      ],
+      "key": false
+    },
+    {
+      "time": "2026-09-12 21:24–2026-09-13 09:38",
+      "who": "ci-deployer, 203.0.113.45",
+      "event": "1 090 GetObject in exampleco-customer-exports/2026/, 2.31 GB. (S1 w7)",
+      "refs": [
+        "w7"
+      ],
+      "key": true
+    },
+    {
+      "time": "2026-09-13 07:52",
+      "who": "GuardDuty",
+      "event": "First finding for ci-deployer from 203.0.113.45. (S1 w13)",
+      "refs": [
+        "w13"
+      ],
+      "key": true
+    },
+    {
+      "time": "2026-09-13 07:58",
+      "who": "client platform team",
+      "event": "Incident channel opened. (src slack)",
+      "refs": [
+        "src"
+      ],
+      "key": false
+    },
+    {
+      "time": "2026-09-13 09:41:12",
+      "who": "sec-admin",
+      "event": "Key AKIA...EXMPL set to Inactive. (S1 w11)",
+      "refs": [
+        "w11"
+      ],
+      "key": true
+    },
+    {
+      "time": "2026-09-13 09:47:55",
+      "who": "sec-admin",
+      "event": "svc-backup-sync key and user deleted. (S1 w11)",
+      "refs": [
+        "w11"
+      ],
+      "key": false
+    },
+    {
+      "time": "2026-09-13 09:52:20",
+      "who": "203.0.113.45",
+      "event": "Last actor call, InvalidClientTokenId. (S1 w12)",
+      "refs": [
+        "w12"
+      ],
+      "key": false
+    },
+    {
+      "time": "2026-09-14 07:58",
+      "who": "S1",
+      "event": "Re-check: no actor events. (S1 w14)",
+      "refs": [
+        "w14"
+      ],
+      "key": false
+    }
+  ],
+  "coverage": {
+    "items": [
+      "01",
+      "02",
+      "03",
+      "04",
+      "05"
+    ],
+    "rows": [
+      {
+        "source": "S1 siem-demo cloudtrail / guardduty",
+        "cells": [
+          {
+            "text": "checked w10",
+            "state": "ok",
+            "refs": [
+              "w10"
+            ]
+          },
+          {
+            "text": "checked w3,w4,w13,w15",
+            "state": "ok",
+            "refs": [
+              "w3",
+              "w4",
+              "w13",
+              "w15"
+            ]
+          },
+          {
+            "text": "checked w5,w6; missing G1",
+            "state": "gap",
+            "refs": [
+              "G1",
+              "w5",
+              "w6"
+            ]
+          },
+          {
+            "text": "checked w7,w8,w16; missing G2",
+            "state": "gap",
+            "refs": [
+              "G2",
+              "w7",
+              "w8",
+              "w16"
+            ]
+          },
+          {
+            "text": "checked w11,w12,w14",
+            "state": "ok",
+            "refs": [
+              "w11",
+              "w12",
+              "w14"
+            ]
+          }
+        ]
+      },
+      {
+        "source": "S2 github audit export",
+        "cells": [
+          {
+            "text": "checked w9",
+            "state": "ok",
+            "refs": [
+              "w9"
+            ]
+          },
+          {
+            "text": "n/a: no AWS API events in GitHub audit",
+            "state": "na",
+            "refs": []
+          },
+          {
+            "text": "n/a: no IAM events",
+            "state": "na",
+            "refs": []
+          },
+          {
+            "text": "n/a: no S3 events",
+            "state": "na",
+            "refs": []
+          },
+          {
+            "text": "n/a: no AWS events",
+            "state": "na",
+            "refs": []
+          }
+        ]
+      }
+    ]
+  },
+  "iocs": [
+    {
+      "type": "IPv4",
+      "value": "203.0.113[.]45",
+      "first_seen": "2026-09-12 21:07:44",
+      "source": "S1 w10"
+    },
+    {
+      "type": "IAM user (created by actor)",
+      "value": "svc-backup-sync",
+      "first_seen": "2026-09-12 21:19:10",
+      "source": "S1 w5"
+    },
+    {
+      "type": "User agent",
+      "value": "aws-cli/2.17.0 Python/3.11 Linux/6.5",
+      "first_seen": "2026-09-12 21:07:44",
+      "source": "S1 w4"
+    }
+  ],
+  "credentials": [
+    {
+      "n": "1",
+      "credential": "IAM access key AKIA...EXMPL (user ci-deployer)",
+      "how": ".env pushed to a public repository",
+      "evidence": "S2 w9",
+      "used": "yes: 1 214 calls (w4)",
+      "rotated": "revoked: set Inactive 2026-09-13 09:41:12 (w11)"
+    },
+    {
+      "n": "2",
+      "credential": "IAM access key of svc-backup-sync",
+      "how": "created by the actor",
+      "evidence": "S1 w5",
+      "used": "no calls in eu-central-1 (w6)",
+      "rotated": "deleted 2026-09-13 09:47:55 (w11)"
+    },
+    {
+      "n": "3",
+      "credential": "Other secrets in the same .env (database URL)",
+      "how": "same push",
+      "evidence": "S2 w9",
+      "used": "unknown",
+      "rotated": "not visible"
+    }
+  ],
+  "gaps": [
+    {
+      "id": "G1",
+      "missing": "CloudTrail for all regions except eu-central-1",
+      "items": "03",
+      "why": "SIEM integration filtered to one region",
+      "retention": "90 days in CloudTrail event history (2026-12-11)",
+      "deadline": "2026-12-11",
+      "status": "requested 2026-09-13",
+      "state": "requested"
+    },
+    {
+      "id": "G2",
+      "missing": "S3 server access logs for buckets other than exampleco-customer-exports",
+      "items": "04",
+      "why": "data events enabled for one bucket only",
+      "retention": "none known",
+      "deadline": null,
+      "status": "not available (client confirmed 2026-09-14: server access logging was off)",
+      "state": "not available"
+    },
+    {
+      "id": "G3",
+      "missing": "GitHub organization audit log 2026-09-10 to 2026-09-14",
+      "items": "01",
+      "why": "not in the SIEM",
+      "retention": "180 days",
+      "deadline": null,
+      "status": "received 2026-09-14 (sources/client_export_2026-09-14/github_audit.jsonl)",
+      "state": "received"
+    }
+  ],
+  "recommendations": [
+    {
+      "n": "1",
+      "priority": "Critical",
+      "action": "Deactivate and delete the ci-deployer key",
+      "why": "item02",
+      "owner": "Client",
+      "status": "Done",
+      "evidence": "w11, 2026-09-13 09:41"
+    },
+    {
+      "n": "2",
+      "priority": "Critical",
+      "action": "Delete svc-backup-sync and its key",
+      "why": "item03",
+      "owner": "Client",
+      "status": "Done",
+      "evidence": "w11, 2026-09-13 09:47"
+    },
+    {
+      "n": "3",
+      "priority": "Critical",
+      "action": "Rotate the database password from the same .env",
+      "why": "credentials #3",
+      "owner": "Client",
+      "status": "Not visible in logs",
+      "evidence": "no source holds DB credential changes"
+    },
+    {
+      "n": "4",
+      "priority": "High",
+      "action": "Remove the .env from git history and enable push protection",
+      "why": "item01",
+      "owner": "Client",
+      "status": "Not checked",
+      "evidence": ""
+    }
+  ],
+  "tracker": [
+    {
+      "phase": "Define the entry point and scope of the attack",
+      "tasks": [
+        {
+          "task": "Review exposure of the ci-deployer access key",
+          "status": "Done",
+          "owner": "Responder",
+          "date": "2026-09-14",
+          "evidence": "item01"
+        },
+        {
+          "task": "Review the actor's API activity",
+          "status": "Done",
+          "owner": "Responder",
+          "date": "2026-09-13",
+          "evidence": "item02"
+        },
+        {
+          "task": "Review persistence",
+          "status": "Blocked (client data)",
+          "owner": "Responder",
+          "date": "2026-09-13",
+          "evidence": "item03, G1"
+        },
+        {
+          "task": "Review data access in S3",
+          "status": "Done",
+          "owner": "Responder",
+          "date": "2026-09-13",
+          "evidence": "item04"
+        },
+        {
+          "task": "Build the exposed credentials inventory",
+          "status": "Done",
+          "owner": "Responder",
+          "date": "2026-09-13",
+          "evidence": "credentials.md"
+        }
+      ]
+    },
+    {
+      "phase": "Containment",
+      "tasks": [
+        {
+          "task": "Deactivate the leaked key",
+          "status": "Done",
+          "owner": "Client",
+          "date": "2026-09-13",
+          "evidence": "w11"
+        },
+        {
+          "task": "Delete the actor's IAM user",
+          "status": "Done",
+          "owner": "Client",
+          "date": "2026-09-13",
+          "evidence": "w11"
+        }
+      ]
+    },
+    {
+      "phase": "Eradication",
+      "tasks": [
+        {
+          "task": "Rotate the database password from the .env",
+          "status": "To do",
+          "owner": "Client",
+          "date": "",
+          "evidence": ""
+        }
+      ]
+    },
+    {
+      "phase": "Recovery",
+      "tasks": []
+    },
+    {
+      "phase": "Post-incident",
+      "tasks": [
+        {
+          "task": "Lessons learned",
+          "status": "In progress",
+          "owner": "Responder",
+          "date": "2026-09-14",
+          "evidence": ""
+        }
+      ]
+    }
+  ],
+  "worklog": {
+    "w1": {
+      "utc": "08:14",
+      "item": "00",
+      "source": "S1 siem",
+      "query": "FROM logs-aws.cloudtrail-* | STATS MIN(@timestamp), MAX(@timestamp), COUNT(*)",
+      "note": "",
+      "result": "2026-06-01 00:00 to 2026-09-13 08:12, 41 882 310 events"
+    },
+    "w2": {
+      "utc": "08:20",
+      "item": "00",
+      "source": "S1 siem",
+      "query": "FROM logs-aws.cloudtrail-* | STATS COUNT(*) BY cloud.region",
+      "note": "",
+      "result": "eu-central-1 only (41 882 310)"
+    },
+    "w3": {
+      "utc": "08:31",
+      "item": "02",
+      "source": "S1 siem",
+      "query": "FROM logs-aws.cloudtrail-* | WHERE aws.cloudtrail.user_identity.access_key_id == \"AKIA...EXMPL\" | STATS COUNT(*) BY source.ip",
+      "note": "",
+      "result": "203.0.113.45: 1 214; 198.51.100.7: 37 (client CI runner)"
+    },
+    "w4": {
+      "utc": "08:40",
+      "item": "02",
+      "source": "S1 siem",
+      "query": "... WHERE source.ip == \"203.0.113.45\" | STATS MIN(@timestamp), MAX(@timestamp), COUNT(*) BY event.action | SORT COUNT(*) DESC",
+      "note": "",
+      "result": "1 214 calls 2026-09-12 21:07:44 to 2026-09-13 09:38:02; GetObject 1 090, ListObjectsV2 61, ListBuckets 9, GetCallerIdentity 6, CreateUser 1, CreateAccessKey 1, AttachUserPolicy 1 (AccessDenied), other 45"
+    },
+    "w5": {
+      "utc": "08:52",
+      "item": "03",
+      "source": "S1 siem",
+      "query": "... WHERE event.action IN (\"CreateUser\",\"CreateAccessKey\",\"AttachUserPolicy\",\"PutUserPolicy\",\"CreateLoginProfile\") AND @timestamp >= \"2026-09-12\"",
+      "note": "",
+      "result": "CreateUser `svc-backup-sync` 2026-09-12 21:19:10; CreateAccessKey for it 21:19:31; AttachUserPolicy AdministratorAccess 21:20:02 AccessDenied"
+    },
+    "w6": {
+      "utc": "09:03",
+      "item": "03",
+      "source": "S1 siem",
+      "query": "... WHERE aws.cloudtrail.user_identity.user_name == \"svc-backup-sync\" | STATS COUNT(*) BY source.ip, event.action",
+      "note": "",
+      "result": "0 events on a filled field (user_name filled in 100% of IAM user events, w2 window)"
+    },
+    "w7": {
+      "utc": "09:15",
+      "item": "04",
+      "source": "S1 siem",
+      "query": "FROM logs-aws.cloudtrail-* | WHERE event.action == \"GetObject\" AND source.ip == \"203.0.113.45\" | STATS COUNT_DISTINCT(aws.s3.object.key), SUM(aws.cloudtrail.additional_eventdata.bytes_transferred_out)",
+      "note": "",
+      "result": "1 090 GetObject on 1 090 distinct keys, 2.31 GB out, all in `exampleco-customer-exports/2026/`"
+    },
+    "w8": {
+      "utc": "09:24",
+      "item": "04",
+      "source": "S1 siem",
+      "query": "... WHERE event.action == \"GetObject\" AND source.ip == \"203.0.113.45\" | STATS COUNT(*) BY aws.s3.object.key_prefix",
+      "note": "",
+      "result": "`2026/07/` 512, `2026/08/` 578"
+    },
+    "w9": {
+      "utc": "09:30",
+      "item": "01",
+      "source": "S2 github audit",
+      "query": "log-profile.py sources/client_export_2026-09-14/github_audit.jsonl --where action~^git.push --where repo~deploy-scripts --keep @timestamp,actor,repo,action",
+      "note": "",
+      "result": "1 push to example-corp/deploy-scripts 2026-09-12 20:41:37 by `dev-jlee`; repo public since 2025-11-02"
+    },
+    "w10": {
+      "utc": "09:36",
+      "item": "01",
+      "source": "S1 siem",
+      "query": "... WHERE aws.cloudtrail.user_identity.access_key_id == \"AKIA...EXMPL\" AND @timestamp >= \"2026-09-12T20:41:37\" | SORT @timestamp | LIMIT 1",
+      "note": "",
+      "result": "First external call 2026-09-12 21:07:44 from 203.0.113.45 (GetCallerIdentity)"
+    },
+    "w11": {
+      "utc": "09:44",
+      "item": "05",
+      "source": "S1 siem",
+      "query": "... WHERE event.action IN (\"UpdateAccessKey\",\"DeleteAccessKey\",\"DeleteUser\") AND @timestamp >= \"2026-09-13\"",
+      "note": "",
+      "result": "UpdateAccessKey Inactive `AKIA...EXMPL` 09:41:12 by `sec-admin`; DeleteAccessKey + DeleteUser `svc-backup-sync` 09:47:55"
+    },
+    "w12": {
+      "utc": "10:30",
+      "item": "05",
+      "source": "S1 siem",
+      "query": "... WHERE source.ip == \"203.0.113.45\" AND @timestamp > \"2026-09-13T09:41:12\" | STATS COUNT(*) BY event.action, aws.cloudtrail.error_code",
+      "note": "",
+      "result": "3 calls after deactivation, all `InvalidClientTokenId`; none after 09:52:20"
+    },
+    "w13": {
+      "utc": "10:41",
+      "item": "02",
+      "source": "S1 siem",
+      "query": "FROM logs-aws.guardduty-* | WHERE @timestamp >= \"2026-09-12\" | STATS COUNT(*) BY rule.name",
+      "note": "",
+      "result": "2 findings, both for `ci-deployer` from 203.0.113.45, first 2026-09-13 07:52"
+    },
+    "w14": {
+      "utc": "11:05",
+      "item": "05",
+      "source": "S1 siem",
+      "query": "FROM logs-aws.cloudtrail-* | WHERE source.ip == \"203.0.113.45\" AND @timestamp > \"2026-09-13T09:52:20\"",
+      "note": "(re-run at 2026-09-14 08:00)",
+      "result": "0 events; newest event in source 2026-09-14 07:58"
+    },
+    "w15": {
+      "utc": "11:20",
+      "item": "02",
+      "source": "S1 siem",
+      "query": "FROM logs-aws.cloudtrail-* | WHERE source.ip == \"203.0.113.45\" | EVAL hour = DATE_TRUNC(1 hour, @timestamp), kind = CASE(event.action == \"GetObject\", \"GetObject\", \"other\") | STATS COUNT(*) BY hour, kind",
+      "note": "",
+      "result": "13 hours 2026-09-12 21:00 to 2026-09-13 09:00. GetObject per hour: 64, 112, 98, 41, 12, 0, 0, 38, 96, 104, 131, 187, 207 (1 090). Other: 96, 6, 4, 2, 0, 0, 0, 3, 4, 3, 2, 2, 2 (124). No calls 02:00 to 03:59"
+    },
+    "w16": {
+      "utc": "11:26",
+      "item": "04",
+      "source": "S1 siem",
+      "query": "... WHERE event.action == \"GetObject\" AND source.ip == \"203.0.113.45\" | EVAL mb = aws.cloudtrail.additional_eventdata.bytes_transferred_out / 1048576 | EVAL bucket = CASE(mb < 0.5, \"<0.5\", mb < 1, \"0.5-1\", mb < 2, \"1-2\", mb < 4, \"2-4\", \">4\") | STATS COUNT(*) BY bucket",
+      "note": "",
+      "result": "<0.5 MB 190, 0.5-1 MB 241, 1-2 MB 352, 2-4 MB 268, >4 MB 39 (1 090)"
+    }
+  },
+  "secrets_found": [],
+  "narrative": {
+    "_help": "Filled by the analyst / Claude (skill ir-report). Every claim carries refs: w<N>, item<NN>, G<N>, R<N>. See templates/report-narrative.md.",
+    "title": "Leaked ci-deployer key used to read the customer exports bucket",
+    "summary": "The access key of IAM user ci-deployer was pushed to a public repository on 2026-09-12 20:41 UTC. An external address used it 26 minutes later, created a backdoor user and read 1 090 objects (2.31 GB) of customer exports for July and August 2026. The client disabled the key on 2026-09-13 09:41 UTC; the actor made no successful call after that. The database password from the same file is not yet proven rotated.",
+    "status_label": "Contained",
+    "severity": "SEV-2",
+    "kpis": [
+      {
+        "value": "26",
+        "unit": "min",
+        "label": "from the public push to the first use of the key",
+        "level": "critical",
+        "refs": [
+          "w9",
+          "w10"
+        ]
+      },
+      {
+        "value": "10.7",
+        "unit": "h",
+        "label": "until the first GuardDuty finding",
+        "level": "serious",
+        "refs": [
+          "w13"
+        ]
+      },
+      {
+        "value": "12 h 34",
+        "unit": "min",
+        "label": "the actor had access (dwell time)",
+        "level": "serious",
+        "refs": [
+          "w10",
+          "w11"
+        ]
+      },
+      {
+        "value": "2.31",
+        "unit": "GB",
+        "label": "read from exampleco-customer-exports",
+        "level": "critical",
+        "refs": [
+          "w7"
+        ]
+      },
+      {
+        "value": "1 214",
+        "label": "API calls from 203.0.113[.]45",
+        "level": "neutral",
+        "refs": [
+          "w4"
+        ],
+        "audience": [
+          "technical"
+        ]
+      },
+      {
+        "value": "0",
+        "label": "successful actor calls after the key was disabled",
+        "level": "good",
+        "refs": [
+          "w12",
+          "w14"
+        ],
+        "audience": [
+          "executive"
+        ]
+      }
+    ],
+    "phases": {
+      "milestones": [
+        {
+          "time": "2026-09-12T20:41:37Z",
+          "event": "dev-jlee pushes .env to the public repository",
+          "refs": [
+            "w9"
+          ]
+        },
+        {
+          "time": "2026-09-12T21:07:44Z",
+          "event": "First call from 203.0.113[.]45",
+          "refs": [
+            "w10"
+          ]
+        },
+        {
+          "time": "2026-09-13T07:52:00Z",
+          "event": "First GuardDuty finding",
+          "refs": [
+            "w13"
+          ]
+        },
+        {
+          "time": "2026-09-13T09:41:12Z",
+          "event": "sec-admin sets the key to Inactive",
+          "refs": [
+            "w11"
+          ]
+        },
+        {
+          "time": "2026-09-13T09:52:20Z",
+          "event": "Last actor call, InvalidClientTokenId",
+          "refs": [
+            "w12"
+          ]
+        }
+      ],
+      "segments": [
+        {
+          "label": "Key public, not used yet",
+          "level": "warning"
+        },
+        {
+          "label": "Actor active, no alert",
+          "level": "critical"
+        },
+        {
+          "label": "Alert raised, key still active",
+          "level": "serious"
+        },
+        {
+          "label": "Key disabled, actor gets errors",
+          "level": "good"
+        }
+      ]
+    },
+    "attack_chain": [
+      {
+        "tactic": "Initial Access",
+        "technique": "T1552.001",
+        "name": "Credentials In Files",
+        "what": "Key in a .env file of a public repository",
+        "time": "2026-09-12 20:41:37",
+        "refs": [
+          "w9"
+        ],
+        "key": true
+      },
+      {
+        "tactic": "Initial Access",
+        "technique": "T1078.004",
+        "name": "Valid Accounts: Cloud Accounts",
+        "what": "Calls signed with the ci-deployer key",
+        "time": "21:07:44",
+        "refs": [
+          "w10"
+        ],
+        "key": true
+      },
+      {
+        "tactic": "Discovery",
+        "technique": "T1087.004",
+        "name": "Account Discovery: Cloud Account",
+        "what": "GetCallerIdentity, 6 calls",
+        "time": "21:07",
+        "refs": [
+          "w4"
+        ]
+      },
+      {
+        "tactic": "Discovery",
+        "technique": "T1619",
+        "name": "Cloud Storage Object Discovery",
+        "what": "ListBuckets 9, ListObjectsV2 61",
+        "time": "21:08-21:18",
+        "refs": [
+          "w4"
+        ]
+      },
+      {
+        "tactic": "Persistence",
+        "technique": "T1136.003",
+        "name": "Create Account: Cloud Account",
+        "what": "CreateUser svc-backup-sync",
+        "time": "21:19:10",
+        "refs": [
+          "w5"
+        ],
+        "key": true
+      },
+      {
+        "tactic": "Persistence",
+        "technique": "T1098.001",
+        "name": "Additional Cloud Credentials",
+        "what": "CreateAccessKey for the new user",
+        "time": "21:19:31",
+        "refs": [
+          "w5"
+        ]
+      },
+      {
+        "tactic": "Privilege Escalation",
+        "technique": "T1098.003",
+        "name": "Additional Cloud Roles",
+        "what": "AttachUserPolicy AdministratorAccess, AccessDenied",
+        "time": "21:20:02",
+        "refs": [
+          "w5"
+        ]
+      },
+      {
+        "tactic": "Collection",
+        "technique": "T1530",
+        "name": "Data from Cloud Storage",
+        "what": "1 090 GetObject, 2.31 GB",
+        "time": "21:24-09:38",
+        "refs": [
+          "w7"
+        ],
+        "key": true
+      }
+    ],
+    "charts": [
+      {
+        "type": "columns",
+        "title": "Actor API calls per hour (UTC)",
+        "labels": [
+          "21",
+          "22",
+          "23",
+          "00",
+          "01",
+          "02",
+          "03",
+          "04",
+          "05",
+          "06",
+          "07",
+          "08",
+          "09"
+        ],
+        "series": [
+          {
+            "name": "GetObject (data read)",
+            "values": [
+              64,
+              112,
+              98,
+              41,
+              12,
+              0,
+              0,
+              38,
+              96,
+              104,
+              131,
+              187,
+              207
+            ]
+          },
+          {
+            "name": "Discovery and IAM",
+            "values": [
+              96,
+              6,
+              4,
+              2,
+              0,
+              0,
+              0,
+              3,
+              4,
+              3,
+              2,
+              2,
+              2
+            ]
+          }
+        ],
+        "markers": [
+          {
+            "at": 10.87,
+            "label": "GuardDuty 07:52",
+            "tip": "First GuardDuty finding, 07:52 UTC (w13)"
+          },
+          {
+            "at": 12.68,
+            "label": "key disabled",
+            "tip": "UpdateAccessKey Inactive, 09:41:12 UTC (w11)"
+          }
+        ],
+        "note": "2026-09-12 21:00 to 2026-09-13 09:59 UTC. No calls from 02:00 to 03:59.",
+        "refs": [
+          "w15"
+        ]
+      },
+      {
+        "type": "hbar",
+        "title": "Actor API calls by action",
+        "rows": [
+          {
+            "label": "GetObject",
+            "value": 1090
+          },
+          {
+            "label": "ListObjectsV2",
+            "value": 61
+          },
+          {
+            "label": "other",
+            "value": 45,
+            "level": "neutral"
+          },
+          {
+            "label": "ListBuckets",
+            "value": 9
+          },
+          {
+            "label": "GetCallerIdentity",
+            "value": 6
+          },
+          {
+            "label": "CreateUser",
+            "value": 1,
+            "level": "serious"
+          },
+          {
+            "label": "CreateAccessKey",
+            "value": 1,
+            "level": "serious"
+          },
+          {
+            "label": "AttachUserPolicy (denied)",
+            "value": 1,
+            "level": "critical"
+          }
+        ],
+        "note": "Linear scale.",
+        "refs": [
+          "w4"
+        ]
+      },
+      {
+        "type": "split",
+        "title": "Objects read by prefix",
+        "parts": [
+          {
+            "label": "2026/07/",
+            "value": 512,
+            "tip": "2026/07/: 512 objects"
+          },
+          {
+            "label": "2026/08/",
+            "value": 578,
+            "tip": "2026/08/: 578 objects"
+          }
+        ],
+        "note": "Every one of the 1 090 keys was read once. Other buckets cannot be checked (G2).",
+        "refs": [
+          "w7",
+          "w8"
+        ]
+      },
+      {
+        "type": "columns",
+        "title": "Size of the objects read",
+        "labels": [
+          "< 0.5 MB",
+          "0.5-1 MB",
+          "1-2 MB",
+          "2-4 MB",
+          "> 4 MB"
+        ],
+        "series": [
+          {
+            "name": "objects",
+            "values": [
+              190,
+              241,
+              352,
+              268,
+              39
+            ]
+          }
+        ],
+        "height": 200,
+        "refs": [
+          "w16"
+        ]
+      }
+    ],
+    "evidence": [
+      {
+        "claim": "The actor made 1 214 calls from 203.0.113[.]45",
+        "status": "Confirmed",
+        "refs": [
+          "w4"
+        ]
+      },
+      {
+        "claim": "26 minutes passed from the push to the first use of the key",
+        "status": "Confirmed",
+        "refs": [
+          "w9",
+          "w10"
+        ]
+      },
+      {
+        "claim": "The svc-backup-sync key was never used",
+        "status": "Partially",
+        "refs": [
+          "w6"
+        ]
+      },
+      {
+        "claim": "2.31 GB was read from 1 090 distinct objects",
+        "status": "Confirmed",
+        "refs": [
+          "w7",
+          "w8"
+        ]
+      },
+      {
+        "claim": "The actor is locked out",
+        "status": "Confirmed",
+        "refs": [
+          "w11",
+          "w12",
+          "w14"
+        ]
+      }
+    ],
+    "key_questions": [
+      {
+        "question": "How did the attacker get in?",
+        "status": "Confirmed",
+        "confidence": 5,
+        "answer": "A developer pushed a file with a cloud access key to a public code repository. An external address started using the key 26 minutes later.",
+        "refs": [
+          "w9",
+          "w10"
+        ]
+      },
+      {
+        "question": "Was customer data taken?",
+        "status": "Confirmed",
+        "confidence": 5,
+        "answer": "Yes. 1 090 customer export files from July and August 2026 were downloaded, 2.31 GB in total. Whether other storage was read cannot be determined, because logging was off there.",
+        "refs": [
+          "w7",
+          "w8"
+        ]
+      },
+      {
+        "question": "Is the attacker still inside?",
+        "status": "Confirmed",
+        "confidence": 4,
+        "answer": "No. The key and the backdoor user were removed on 2026-09-13. Every call after that failed, and no new activity appeared in the following 22 hours.",
+        "refs": [
+          "w11",
+          "w12",
+          "w14"
+        ]
+      },
+      {
+        "question": "Are other secrets at risk?",
+        "status": "Partially",
+        "confidence": 2,
+        "answer": "The same file held a database password. We see no proof that it was changed.",
+        "refs": [
+          "item01"
+        ]
+      }
+    ],
+    "story": [
+      {
+        "time": "12 Sep 20:41",
+        "title": "Key exposed",
+        "text": "A cloud access key lands in a public code repository"
+      },
+      {
+        "time": "12 Sep 21:07",
+        "title": "Attacker in",
+        "text": "An external address starts using the key"
+      },
+      {
+        "time": "12 Sep 21:19",
+        "title": "Backdoor",
+        "text": "The attacker creates an extra user to keep access"
+      },
+      {
+        "time": "12 Sep 21:24",
+        "title": "Data read",
+        "text": "Customer export files are downloaded through the night"
+      },
+      {
+        "time": "13 Sep 09:41",
+        "title": "Stopped",
+        "text": "The client disables the key and deletes the backdoor user"
+      }
+    ],
+    "impact": {
+      "assets": [],
+      "services": [],
+      "recovery": {}
+    },
+    "risks": [
+      {
+        "id": "R1",
+        "text": "Database password from the same file still valid",
+        "likelihood": 4,
+        "impact": 5,
+        "refs": [
+          "item01"
+        ]
+      },
+      {
+        "id": "R2",
+        "text": "Activity in other cloud regions not visible",
+        "likelihood": 2,
+        "impact": 4,
+        "refs": [
+          "G1"
+        ]
+      },
+      {
+        "id": "R3",
+        "text": "Other buckets read without a trace",
+        "likelihood": 2,
+        "impact": 4,
+        "refs": [
+          "G2"
+        ]
+      },
+      {
+        "id": "R4",
+        "text": "Another key leaks the same way",
+        "likelihood": 3,
+        "impact": 4,
+        "refs": [
+          "item01"
+        ]
+      }
+    ],
+    "decisions": [
+      {
+        "decision": "Decide whether to notify affected customers and the regulator",
+        "why": "Customer exports for July and August 2026 were downloaded. GDPR gives 72 hours from awareness (2026-09-13 09:15 UTC)",
+        "deadline_utc": "2026-09-16T09:15Z",
+        "owner": "DPO, legal",
+        "level": "critical"
+      },
+      {
+        "decision": "Rotate the database password from the leaked file",
+        "why": "Closes risk R1",
+        "deadline_utc": "2026-09-14T18:00Z",
+        "owner": "Platform team",
+        "level": "critical"
+      },
+      {
+        "decision": "Enable secret scanning push protection for the organisation",
+        "why": "Stops the same leak path (R4)",
+        "deadline_utc": "2026-09-21T00:00Z",
+        "owner": "Head of engineering",
+        "level": "warning"
+      }
+    ],
+    "methodology_notes": [
+      "CloudTrail in the SIEM covers eu-central-1 only (G1).",
+      "S3 data events exist for one bucket only (G2)."
+    ]
+  },
+  "quality": {
+    "score": 92,
+    "categories": [
+      {
+        "key": "traceability",
+        "name": "Claim traceability",
+        "short": "Traceability",
+        "weight": 25,
+        "score": 100,
+        "detail": "43 of 43 claims cite a worklog row, item or gap"
+      },
+      {
+        "key": "coverage",
+        "name": "Source coverage",
+        "short": "Coverage",
+        "weight": 20,
+        "score": 100,
+        "detail": "10 of 10 coverage cells filled"
+      },
+      {
+        "key": "gaps",
+        "name": "Data gaps handled",
+        "short": "Gaps",
+        "weight": 15,
+        "score": 100,
+        "detail": "0 of 3 gaps still open"
+      },
+      {
+        "key": "containment",
+        "name": "Containment proven",
+        "short": "Containment",
+        "weight": 15,
+        "score": 50,
+        "detail": "2 of 4 recommendations have a log reference"
+      },
+      {
+        "key": "timeline",
+        "name": "Timeline sourced",
+        "short": "Timeline",
+        "weight": 10,
+        "score": 100,
+        "detail": "12 of 12 events cite a source"
+      },
+      {
+        "key": "iocs",
+        "name": "IOC hygiene",
+        "short": "IOCs",
+        "weight": 10,
+        "score": 100,
+        "detail": "3 of 3 indicators defanged and sourced"
+      },
+      {
+        "key": "secrets",
+        "name": "No secrets in files",
+        "short": "Secrets",
+        "weight": 5,
+        "score": 100,
+        "detail": "0 file(s) with secret-like values"
+      }
+    ],
+    "findings": [
+      {
+        "severity": "Medium",
+        "file": "recommendations.md",
+        "where": "#3",
+        "issue": "Critical action still Not visible in logs: Rotate the database password from the same .env.",
+        "fix": "Chase the owner; re-check with ir-containment-check"
+      },
+      {
+        "severity": "Medium",
+        "file": "credentials.md",
+        "where": "#3",
+        "issue": "Rotation of 'Other secrets in the same .env (database URL)' is not proven.",
+        "fix": "Ask the client for proof or keep it as an open recommendation"
+      }
+    ],
+    "retention": [
+      {
+        "id": "G1",
+        "label": "CloudTrail for all regions except eu-central-1",
+        "days": 87,
+        "deadline": "2026-12-11",
+        "state": "requested"
+      },
+      {
+        "id": "G2",
+        "label": "S3 server access logs for buckets other than exampleco-customer-exports",
+        "days": null,
+        "deadline": null,
+        "state": "not available"
+      }
+    ]
+  }
+}
